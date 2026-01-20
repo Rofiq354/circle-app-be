@@ -1,0 +1,99 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int     @id @default(autoincrement())
+  username      String  @unique
+  fullname      String
+  email         String  @unique
+  password      String
+  photo_profile String? @map("photo_profile")
+  bio           String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // RELATIONS
+  threads Thread[] @relation("UserThreads")
+  replies Reply[]
+  likes   Like[]
+
+  following Following[] @relation("UserFollowing")
+  followers Following[] @relation("UserFollowers")
+}
+
+model Thread {
+  id              Int     @id @default(autoincrement())
+  content         String
+  image           String?
+  numberOfReplies Int     @default(0) @map("number_of_replies")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // RELATIONS
+  createdById Int  @map("created_by")
+  createdBy   User @relation("UserThreads", fields: [createdById], references: [id])
+
+  replies Reply[]
+  likes   Like[]
+}
+
+model Reply {
+  id      Int     @id @default(autoincrement())
+  content String
+  image   String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // RELATIONS
+  userId   Int @map("user_id")
+  threadId Int @map("thread_id")
+
+  user   User   @relation(fields: [userId], references: [id])
+  thread Thread @relation(fields: [threadId], references: [id])
+}
+
+model Like {
+  id Int @id @default(autoincrement())
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // RELATIONS
+  userId   Int @map("user_id")
+  threadId Int @map("thread_id")
+
+  user   User   @relation(fields: [userId], references: [id])
+  thread Thread @relation(fields: [threadId], references: [id])
+
+  @@unique([userId, threadId]) // 1 user hanya bisa like 1x per thread
+}
+
+model Following {
+  id Int @id @default(autoincrement())
+
+  followerId  Int @map("follower_id")
+  followingId Int @map("following_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  follower  User @relation("UserFollowers", fields: [followerId], references: [id])
+  following User @relation("UserFollowing", fields: [followingId], references: [id])
+
+  @@unique([followerId, followingId]) // tidak bisa follow user yang sama 2x
+}
