@@ -1,4 +1,4 @@
-import { prisma } from "./prisaClient";
+import { prisma } from "./prismaClient";
 import { seedFollows } from "./seeds/follow.seed";
 import { seedLikes } from "./seeds/like.seed";
 import { seedReplies } from "./seeds/reply.seed";

@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express-serve-static-core";
-import { prisma } from "../prisma/prisaClient";
+import { prisma } from "../prisma/prismaClient";
 import { AppError } from "../errors/AppError";
 
 export const getAllThreads = async (
@@ -8,12 +8,14 @@ export const getAllThreads = async (
   next: NextFunction,
 ) => {
   try {
-    const { limit = 10, page = 0 } = req.query;
-    const userId = 1;
+    const { limit = 50, page = 0 } = req.query;
+    const userId = req.user.id;
+
     const threads = await prisma.thread.findMany({
       select: {
         id: true,
         content: true,
+        image: true,
         createdAt: true,
         createdBy: {
           select: {
@@ -40,6 +42,7 @@ export const getAllThreads = async (
       },
       take: Number(limit),
       skip: Number(page) === 0 ? 0 : (Number(page) - 1) * Number(limit),
+      orderBy: { createdAt: "desc" },
     });
 
     if (!threads || threads.length === 0)
@@ -48,6 +51,7 @@ export const getAllThreads = async (
     const result = threads.map((thread) => ({
       id: thread.id,
       content: thread.content,
+      images: thread.image,
       user: thread.createdBy,
       created_at: thread.createdAt,
       likes: thread._count.likes,
@@ -65,5 +69,64 @@ export const getAllThreads = async (
     });
   } catch (error) {
     next(error);
+  }
+};
+
+export const createThread = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { content } = req.body;
+    const userId = req.user.id;
+
+    let imagePath = null;
+
+    if (req.file) {
+      imagePath = `${req.protocol}://${req.get("host")}/public/images/${req.file.filename}`;
+    }
+    const newThread = await prisma.thread.create({
+      data: {
+        content,
+        image: imagePath,
+        createdById: userId,
+      },
+      include: {
+        createdBy: true,
+      },
+    });
+
+    const tweet = {
+      id: newThread.id.toString(),
+      user_id: newThread.createdById.toString(),
+      content: newThread.content,
+      image_url: newThread.image ?? null,
+      timestamp: newThread.createdAt,
+    };
+
+    const tweetSocket = {
+      id: tweet.id,
+      content: tweet.content,
+      images: tweet.image_url,
+      user: newThread.createdBy,
+      created_at: newThread.createdAt,
+      likes: 0,
+      reply: 0,
+      isLiked: false,
+    };
+
+    req.io.emit("new-thread", tweetSocket);
+
+    return res.status(200).json({
+      code: 200,
+      status: "success",
+      message: "Thread berhasil diposting.",
+      data: {
+        tweet,
+      },
+    });
+  } catch (error) {
+    next(new AppError("Invalid thread content", 500));
   }
 };

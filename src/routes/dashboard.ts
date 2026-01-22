@@ -4,6 +4,6 @@ import { authenticate } from "../middlewares/auth";
 
 const router = expres.Router();
 
-router.get("/", authenticate, dashboardController.index);
+router.get("/home", authenticate, dashboardController.index);
 
 export default router;

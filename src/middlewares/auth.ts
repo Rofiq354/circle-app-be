@@ -7,12 +7,10 @@ export const authenticate = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader) throw new AppError("Unauthorized", 401);
+  const token = req.cookies?.token;
+  if (!token) throw new AppError("Unauthorized", 401);
 
   try {
-    const token = authHeader.split(" ")[1];
     const decoded = registerToken(token);
     (req as any).user = decoded;
     next();

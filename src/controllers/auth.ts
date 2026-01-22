@@ -1,7 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import { prisma } from "../prisma/prisaClient";
+import { prisma } from "../prisma/prismaClient";
 import { signToken } from "../utils/jwt";
 import { AppError } from "../errors/AppError";
 import { comparePassword, hashPassword } from "../utils/hash";
@@ -57,6 +55,14 @@ export const register = async (
     const token = signToken({
       id: user.id,
       email: user.email,
+    });
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      // maxAge: 24 * 60 * 60 * 1000,
+      maxAge: 3 * 60 * 60 * 1000,
     });
 
     res.status(201).json({
@@ -126,6 +132,7 @@ export const login = async (
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       maxAge: 24 * 60 * 60 * 1000,
+      // maxAge: 15 * 1000,
     });
 
     res.status(200).json({
@@ -146,5 +153,32 @@ export const login = async (
     } else {
       next(new AppError("Invalid Login", 500));
     }
+  }
+};
+
+export const me = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = req.user;
+    // req.user sudah di-set oleh middleware authenticate
+    return res.json({
+      code: 200,
+      status: "success",
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const logout = (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.clearCookie("token");
+    return res.json({
+      code: 200,
+      status: "success",
+      message: "Logout successful.",
+    });
+  } catch (error) {
+    next(error);
   }
 };
