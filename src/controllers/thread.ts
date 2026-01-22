@@ -130,3 +130,80 @@ export const createThread = async (
     next(new AppError("Invalid thread content", 500));
   }
 };
+
+export const getThreadById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { threadId } = req.params;
+
+    const thread = await prisma.thread.findUnique({
+      where: {
+        id: Number(threadId),
+      },
+      select: {
+        id: true,
+        content: true,
+        image: true,
+        createdAt: true,
+        createdBy: {
+          select: {
+            id: true,
+            username: true,
+            fullname: true,
+            photo_profile: true,
+          },
+        },
+        _count: {
+          select: {
+            replies: true,
+            likes: true,
+          },
+        },
+      },
+    });
+
+    if (!thread) throw new AppError("Data Thread Not Found", 404);
+
+    const { id, content, image, createdAt, createdBy, _count } = thread;
+
+    const { likes, replies } = _count;
+
+    const userId = createdBy.id;
+    const { username, fullname, photo_profile } = createdBy;
+
+    let profile_picture = null;
+
+    if (photo_profile) {
+      if (photo_profile !== null) {
+        profile_picture = `${req.protocol}://${req.get("host")}/public/images/${photo_profile}`;
+      }
+    }
+
+    const user = {
+      userId,
+      username,
+      name: fullname,
+      profile_picture,
+    };
+
+    res.status(200).json({
+      code: 200,
+      status: "success",
+      message: "Get Data Thread Successfully.",
+      data: {
+        id,
+        content,
+        image,
+        user,
+        created_at: createdAt,
+        likes,
+        replies,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};

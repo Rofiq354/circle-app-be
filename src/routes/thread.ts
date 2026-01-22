@@ -12,5 +12,6 @@ router.post(
   upload.single("image"),
   threadController.createThread,
 );
+router.get("/thread/:threadId", authenticate, threadController.getThreadById);
 
 export default router;
