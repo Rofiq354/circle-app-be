@@ -9,6 +9,7 @@ import authRouter from "./routes/auth";
 import dashboardRouter from "./routes/dashboard";
 import threadsRouter from "./routes/thread";
 import repliesRouter from "./routes/reply";
+import likesRouter from "./routes/like";
 import { errorHandler } from "./errors/errorHandler";
 import { corsOptions } from "./middlewares/cors";
 const app = express();
@@ -37,6 +38,7 @@ app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/", dashboardRouter);
 app.use("/api/v1/", threadsRouter);
 app.use("/api/v1/", repliesRouter);
+app.use("/api/v1/", likesRouter);
 
 app.use(errorHandler);
 
