@@ -84,7 +84,7 @@ export const createThread = async (
     let imagePath = null;
 
     if (req.file) {
-      imagePath = `${req.protocol}://${req.get("host")}/public/images/${req.file.filename}`;
+      imagePath = `${req.protocol}://${req.get("host")}/public/uploads/${req.file.filename}`;
     }
     const newThread = await prisma.thread.create({
       data: {
@@ -174,19 +174,11 @@ export const getThreadById = async (
     const userId = createdBy.id;
     const { username, fullname, photo_profile } = createdBy;
 
-    let profile_picture = null;
-
-    if (photo_profile) {
-      if (photo_profile !== null) {
-        profile_picture = `${req.protocol}://${req.get("host")}/public/images/${photo_profile}`;
-      }
-    }
-
     const user = {
       userId,
       username,
       name: fullname,
-      profile_picture,
+      profile_picture: photo_profile ? photo_profile : null,
     };
 
     res.status(200).json({

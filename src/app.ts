@@ -26,7 +26,7 @@ const io = new Server(server, {
 app.use(express.json());
 app.use(cors(corsOptions));
 app.use(coockieParser());
-app.use("/public/images", express.static("public/images"));
+app.use("/public/", express.static("public/"));
 
 app.use((req, res, next) => {
   (req as any).io = io;

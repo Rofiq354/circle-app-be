@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express-serve-static-core";
 import { prisma } from "../prisma/prismaClient";
+import { AppError } from "../errors/AppError";
 
 export const getRepliesByThreadId = async (
   req: Request,
@@ -51,5 +52,81 @@ export const getRepliesByThreadId = async (
     });
   } catch (error) {
     next(error);
+  }
+};
+
+export const createReplyByThreadId = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const userId = req.user.id;
+    const { content } = req.body;
+
+    const { thread_id } = req.query;
+
+    const thread = await prisma.thread.findUnique({
+      where: {
+        id: Number(thread_id),
+      },
+    });
+
+    if (!thread) {
+      return next(new AppError("Thread not found", 404));
+    }
+
+    const reply = await prisma.reply.create({
+      data: {
+        content,
+        userId,
+        threadId: thread.id,
+      },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        image: true,
+        user: true,
+      },
+    });
+
+    const id = thread.id;
+    const image_url = req.file ? req.file.filename : null;
+    const timestamp = new Date().toISOString();
+
+    const result = {
+      id,
+      user_id: userId,
+      content,
+      image_url,
+      timestamp,
+    };
+
+    const replySocket = {
+      id: reply.id,
+      content: reply.content,
+      image_url: reply.image ?? null,
+      created_at: reply.createdAt,
+      user: {
+        id: reply.user.id,
+        username: reply.user.username,
+        name: reply.user.fullname,
+        profile_picture: reply.user.photo_profile,
+      },
+    };
+
+    req.io.emit("new-reply", replySocket);
+
+    res.status(200).json({
+      code: 200,
+      status: "success",
+      message: "Reply berhasil diposting.",
+      data: {
+        tweet: result,
+      },
+    });
+  } catch (error) {
+    next(new AppError("Invalid thread content", 500));
   }
 };
