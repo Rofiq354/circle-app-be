@@ -1,15 +1,18 @@
 import { PrismaClient } from "@prisma/client";
+import { hashPassword } from "../../utils/hash";
 
 export async function seedUsers(prisma: PrismaClient) {
+  const pwHash = await hashPassword("hashed_password_1");
   const users = await prisma.user.createMany({
     data: [
       {
         username: "ainur",
         fullname: "Ainur Rofiq",
         email: "ainur@mail.com",
-        password: "hashed_password_1",
+        password: pwHash,
         bio: "Frontend Developer",
-        photo_profile: "ainur.jpg",
+        photo_profile: "http://localhost:3003/public/images/me.jpg",
+        cover_photo: "http://localhost:3003/public/images/cover_photo.jpg",
       },
       {
         username: "budi",

@@ -25,6 +25,8 @@ export const toggleLike = async (
       },
     });
 
+    let isLikeAction = false;
+
     if (existingLike) {
       await prisma.like.delete({
         where: {
@@ -32,10 +34,7 @@ export const toggleLike = async (
         },
       });
 
-      return res.status(200).json({
-        message: "Unliked successfully",
-        isLiked: false,
-      });
+      isLikeAction = false;
     } else {
       await prisma.like.create({
         data: {
@@ -43,13 +42,27 @@ export const toggleLike = async (
           userId: userId,
         },
       });
+
+      isLikeAction = true;
     }
 
+    const likesCount = await prisma.like.count({
+      where: { threadId: Number(tweet_id) },
+    });
+
+    req.io.emit("update-like", {
+      threadId: Number(tweet_id),
+      likesCount: likesCount,
+    });
+
     res.status(200).json({
-      message: "Tweet liked successfully.",
+      message: isLikeAction
+        ? "Tweet liked successfully."
+        : "Unliked successfully.",
       tweet_id,
       user_id: userId,
-      isLiked: true,
+      isLiked: isLikeAction,
+      likesCount,
     });
   } catch (error) {
     next(error);

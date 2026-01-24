@@ -17,6 +17,8 @@ export const getRepliesByThreadId = async (
       select: {
         id: true,
         content: true,
+        image: true,
+        threadId: true,
         createdAt: true,
         user: {
           select: {
@@ -32,7 +34,9 @@ export const getRepliesByThreadId = async (
     const result = replies.map((reply) => {
       return {
         id: reply.id,
+        threadId: reply.threadId,
         content: reply.content,
+        image: reply.image,
         user: {
           id: reply.user.id,
           username: reply.user.username,
@@ -76,11 +80,18 @@ export const createReplyByThreadId = async (
       return next(new AppError("Thread not found", 404));
     }
 
+    let image_url = null;
+
+    if (req.file) {
+      image_url = `${req.protocol}://${req.get("host")}/public/uploads/${req.file.filename}`;
+    }
+
     const reply = await prisma.reply.create({
       data: {
         content,
         userId,
         threadId: thread.id,
+        image: image_url,
       },
       select: {
         id: true,
@@ -88,16 +99,18 @@ export const createReplyByThreadId = async (
         createdAt: true,
         image: true,
         user: true,
+        threadId: true,
       },
     });
 
-    const id = thread.id;
-    const image_url = req.file ? req.file.filename : null;
+    const id = reply.id;
+
     const timestamp = new Date().toISOString();
 
     const result = {
       id,
       user_id: userId,
+      thread_id,
       content,
       image_url,
       timestamp,
@@ -106,8 +119,9 @@ export const createReplyByThreadId = async (
     const replySocket = {
       id: reply.id,
       content: reply.content,
-      image_url: reply.image ?? null,
+      image_url: reply.image ? reply.image : null,
       created_at: reply.createdAt,
+      threadId: reply.threadId,
       user: {
         id: reply.user.id,
         username: reply.user.username,

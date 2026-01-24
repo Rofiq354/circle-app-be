@@ -7,6 +7,7 @@ import { Server } from "socket.io";
 
 import authRouter from "./routes/auth";
 import dashboardRouter from "./routes/dashboard";
+import userRouter from "./routes/user";
 import threadsRouter from "./routes/thread";
 import repliesRouter from "./routes/reply";
 import likesRouter from "./routes/like";
@@ -36,6 +37,7 @@ app.use((req, res, next) => {
 
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/", dashboardRouter);
+app.use("/api/v1/", userRouter);
 app.use("/api/v1/", threadsRouter);
 app.use("/api/v1/", repliesRouter);
 app.use("/api/v1/", likesRouter);

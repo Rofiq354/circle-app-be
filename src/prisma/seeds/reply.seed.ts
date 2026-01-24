@@ -21,6 +21,7 @@ export async function seedReplies(
         content: "UX memang nomor satu 👍",
         userId: users[0].id,
         threadId: threads[2].id,
+        image: "http://localhost:3003/public/uploads/image-2.jpg",
       },
     ],
   });
