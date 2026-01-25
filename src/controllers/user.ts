@@ -37,10 +37,12 @@ export const getUserProfile = async (
       follower_count: user?._count.followers,
       following_count: user?._count.following,
       likes: user?._count.likes,
-      threads: user?._count.threads,
+      threads_count: user?._count.threads,
     };
 
-    res.status(200).json(result);
+    res
+      .status(200)
+      .json({ message: "Berhasil mengambil data my profile.", data: result });
   } catch (error) {
     next(error);
   }
@@ -111,8 +113,61 @@ export const updateUserProfile = async (
       threads: updatedUser._count.threads,
     };
 
-    return res.status(200).json({ data: result });
+    return res
+      .status(200)
+      .json({ message: "Profile berhasil diupdate.", data: result });
   } catch (error) {
     next(new AppError("Gagal update profile.", 500));
+  }
+};
+
+export const getUserProfileByUsername = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { username } = req.params;
+    const currentUserId = req.user.id;
+
+    const user = await prisma.user.findUnique({
+      where: { username: String(username) },
+      include: {
+        _count: {
+          select: {
+            followers: true,
+            following: true,
+            threads: true,
+            likes: true,
+          },
+        },
+        followers: {
+          where: { followerId: Number(currentUserId) },
+        },
+      },
+    });
+
+    if (!user) {
+      return next(new AppError("User tidak ditemukan.", 404));
+    }
+    const result = {
+      id: user.id,
+      username: user.username,
+      name: user.fullname,
+      photo_profile: user.photo_profile,
+      cover_photo: user.cover_photo,
+      bio: user.bio,
+      follower_count: user._count.followers,
+      following_count: user._count.following,
+      likes_count: user._count.likes,
+      threads_count: user._count.threads,
+      isFollowed: user.followers.length > 0,
+    };
+    return res.status(200).json({
+      message: "Success get profile",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
   }
 };

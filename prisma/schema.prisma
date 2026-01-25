@@ -31,8 +31,8 @@ model User {
   replies Reply[]
   likes   Like[]
 
-  following Following[] @relation("UserFollowing")
-  followers Following[] @relation("UserFollowers")
+  following Following[] @relation("UserFollowers")
+  followers Following[] @relation("UserFollowing")
 }
 
 model Thread {
@@ -96,5 +96,5 @@ model Following {
   follower  User @relation("UserFollowers", fields: [followerId], references: [id])
   following User @relation("UserFollowing", fields: [followingId], references: [id])
 
-  @@unique([followerId, followingId]) // tidak bisa follow user yang sama 2x
+  @@unique([followerId, followingId])
 }

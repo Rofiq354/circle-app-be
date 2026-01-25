@@ -11,6 +11,7 @@ import userRouter from "./routes/user";
 import threadsRouter from "./routes/thread";
 import repliesRouter from "./routes/reply";
 import likesRouter from "./routes/like";
+import followRouter from "./routes/follow";
 import { errorHandler } from "./errors/errorHandler";
 import { corsOptions } from "./middlewares/cors";
 const app = express();
@@ -41,6 +42,7 @@ app.use("/api/v1/", userRouter);
 app.use("/api/v1/", threadsRouter);
 app.use("/api/v1/", repliesRouter);
 app.use("/api/v1/", likesRouter);
+app.use("/api/v1/", followRouter);
 
 app.use(errorHandler);
 

@@ -15,5 +15,10 @@ router.patch(
   ]),
   userController.updateUserProfile,
 );
+router.get(
+  "/profile/:username",
+  authenticate,
+  userController.getUserProfileByUsername,
+);
 
 export default router;

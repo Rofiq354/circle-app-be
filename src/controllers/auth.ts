@@ -55,6 +55,7 @@ export const register = async (
     const token = signToken({
       id: user.id,
       email: user.email,
+      username: user.username,
     });
 
     res.cookie("token", token, {
@@ -125,6 +126,7 @@ export const login = async (
     const token = signToken({
       id: user.id,
       email: user.email,
+      username: user.username,
     });
 
     res.cookie("token", token, {

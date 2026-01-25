@@ -2,14 +2,16 @@ import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "../../utils/hash";
 
 export async function seedUsers(prisma: PrismaClient) {
-  const pwHash = await hashPassword("hashed_password_1");
+  const pwHash1 = await hashPassword("Ainur#123");
+  const pwHash2 = await hashPassword("Siti#123");
+  const pwHash3 = await hashPassword("Budi#123");
   const users = await prisma.user.createMany({
     data: [
       {
         username: "ainur",
         fullname: "Ainur Rofiq",
         email: "ainur@mail.com",
-        password: pwHash,
+        password: pwHash1,
         bio: "Frontend Developer",
         photo_profile: "http://localhost:3003/public/images/me.jpg",
         cover_photo: "http://localhost:3003/public/images/cover_photo.jpg",
@@ -18,17 +20,17 @@ export async function seedUsers(prisma: PrismaClient) {
         username: "budi",
         fullname: "Budi Santoso",
         email: "budi@mail.com",
-        password: "hashed_password_2",
+        password: pwHash3,
         bio: "Backend Engineer",
-        photo_profile: "budi.jpg",
+        photo_profile: "http://localhost:3003/public/images/user3.jpg",
       },
       {
         username: "siti",
         fullname: "Siti Aminah",
         email: "siti@mail.com",
-        password: "hashed_password_3",
+        password: pwHash2,
         bio: "UI/UX Designer",
-        photo_profile: "siti.jpg",
+        photo_profile: "http://localhost:3003/public/images/user2.jpg",
       },
     ],
   });
