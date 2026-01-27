@@ -199,3 +199,63 @@ export const getThreadById = async (
     next(error);
   }
 };
+
+export const getThreadByUserId = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) return;
+
+    const threads = await prisma.thread.findMany({
+      where: { createdById: Number(userId) },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        image: true,
+        createdBy: {
+          select: {
+            id: true,
+            username: true,
+            fullname: true,
+            photo_profile: true,
+          },
+        },
+        _count: {
+          select: {
+            replies: true,
+            likes: true,
+          },
+        },
+      },
+    });
+
+    if (threads.length === 0) throw new AppError("Data Threads Not Found", 404);
+
+    const result = threads.map((thread) => ({
+      id: thread.id,
+      content: thread.content,
+      images: thread.image,
+      user: thread.createdBy,
+      created_at: thread.createdAt,
+      likes: thread._count.likes,
+      reply: thread._count.replies,
+      isLiked: thread._count.likes > 0,
+    }));
+
+    res.status(200).json({
+      code: 200,
+      status: "success",
+      message: "Get Data Thread Successfully.",
+      data: {
+        threads: result,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};

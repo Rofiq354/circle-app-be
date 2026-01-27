@@ -9,7 +9,8 @@ export const getUserFollowers = async (
 ) => {
   try {
     const userId = req.user.id;
-    const { type } = req.query;
+    const { id, type } = req.params;
+    // const { type } = req.query;
 
     if (!type) {
       return res.status(400).json({
@@ -20,9 +21,17 @@ export const getUserFollowers = async (
 
     let result;
 
+    const myFollowing = await prisma.following.findMany({
+      where: { followerId: Number(userId) },
+      select: { followingId: true },
+    });
+
+    // Ubah ke Set agar pencarian (lookup) lebih cepat
+    const myFollowingIds = new Set(myFollowing.map((f) => f.followingId));
+
     if (type === "following") {
       result = await prisma.following.findMany({
-        where: { followerId: userId },
+        where: { followerId: Number(id) },
         include: {
           following: {
             select: {
@@ -37,11 +46,14 @@ export const getUserFollowers = async (
       });
 
       result = {
-        following: result.map((item) => item.following),
+        followers: result.map((item) => ({
+          ...item.following,
+          isFollowing: myFollowingIds.has(item.following.id),
+        })),
       };
     } else {
       result = await prisma.following.findMany({
-        where: { followingId: userId },
+        where: { followingId: Number(id) },
         include: {
           follower: {
             select: {
@@ -56,7 +68,10 @@ export const getUserFollowers = async (
       });
 
       result = {
-        followers: result.map((item) => item.follower),
+        followers: result.map((item) => ({
+          ...item.follower,
+          isFollowing: myFollowingIds.has(item.follower.id),
+        })),
       };
     }
 
@@ -83,7 +98,9 @@ export const toggleFollow = async (
 
     // Cegah user follow diri sendiri
     if (followerId === followingId) {
-      return res.status(400).json({ message: "You cannot follow yourself" });
+      return res
+        .status(400)
+        .json({ message: "Anda tidak boleh follow diri sendiri" });
     }
 
     // Cek apakah sudah follow
@@ -104,7 +121,7 @@ export const toggleFollow = async (
 
       return res.status(200).json({
         status: "success",
-        message: "You have successfully unfollowed the user.",
+        message: "Berhasil unfollow user.",
         data: {
           user_id: followingId,
           isFollowed: false,
@@ -121,7 +138,7 @@ export const toggleFollow = async (
 
       return res.status(200).json({
         status: "success",
-        message: "You have successfully followed the user.",
+        message: "Berhasil follow user.",
         data: {
           user_id: followingId,
           isFollowed: true,

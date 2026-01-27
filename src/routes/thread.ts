@@ -13,5 +13,10 @@ router.post(
   threadController.createThread,
 );
 router.get("/thread/:threadId", authenticate, threadController.getThreadById);
+router.get(
+  "/user/:userId/threads",
+  authenticate,
+  threadController.getThreadByUserId,
+);
 
 export default router;

@@ -4,7 +4,11 @@ import { authenticate } from "../middlewares/auth";
 
 const router = express.Router();
 
-router.get("/follows", authenticate, followController.getUserFollowers);
+router.get(
+  "/follows/:id/:type",
+  authenticate,
+  followController.getUserFollowers,
+);
 router.post(
   "/follows/:followingId",
   authenticate,
