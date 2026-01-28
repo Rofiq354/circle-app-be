@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express-serve-static-core";
+import { redis } from "../lib/redis";
 import { prisma } from "../prisma/prismaClient";
 import { AppError } from "../errors/AppError";
 
@@ -7,10 +8,21 @@ export const getAllThreads = async (
   res: Response,
   next: NextFunction,
 ) => {
-  try {
-    const { limit = 50, page = 0 } = req.query;
-    const userId = req.user.id;
+  const { limit = 25, page = 0 } = req.query;
+  const userId = req.user.id;
+  const cacheKey = `threads:page:${page}:limit:${limit}:user:${userId}`;
+  let cachedThreads = null;
 
+  try {
+    cachedThreads = await redis.get(cacheKey);
+    if (cachedThreads) {
+      return res.status(200).json(JSON.parse(cachedThreads));
+    }
+  } catch (err) {
+    console.error("Redis Get Error:", err);
+  }
+
+  try {
     const threads = await prisma.thread.findMany({
       select: {
         id: true,
@@ -59,14 +71,18 @@ export const getAllThreads = async (
       isLiked: thread.likes.length > 0,
     }));
 
-    res.status(200).json({
+    const finalResponse = {
       code: 200,
       status: "success",
       message: "Get Data Thread Successfully.",
-      data: {
-        threads: result,
-      },
-    });
+      data: { threads: result },
+    };
+
+    res.status(200).json(finalResponse);
+
+    redis
+      .setex(cacheKey, 60, JSON.stringify(finalResponse))
+      .catch((err) => console.error("Redis Set Error:", err));
   } catch (error) {
     next(error);
   }
@@ -117,6 +133,15 @@ export const createThread = async (
     };
 
     req.io.emit("new-thread", tweetSocket);
+
+    redis
+      .keys("threads:*")
+      .then((keys) => {
+        if (keys.length > 0) {
+          redis.del(...keys);
+        }
+      })
+      .catch((err) => console.error("Redis Flush Error:", err));
 
     return res.status(200).json({
       code: 200,
@@ -210,6 +235,13 @@ export const getThreadByUserId = async (
 
     if (!userId) return;
 
+    const cacheKey = `threads:user_profile:${userId}`;
+
+    const cachedUserThreads = await redis.get(cacheKey);
+    if (cachedUserThreads) {
+      return res.status(200).json(JSON.parse(cachedUserThreads));
+    }
+
     const threads = await prisma.thread.findMany({
       where: { createdById: Number(userId) },
       select: {
@@ -247,14 +279,18 @@ export const getThreadByUserId = async (
       isLiked: thread._count.likes > 0,
     }));
 
-    res.status(200).json({
+    const finalResponse = {
       code: 200,
       status: "success",
       message: "Get Data Thread Successfully.",
-      data: {
-        threads: result,
-      },
-    });
+      data: { threads: result },
+    };
+
+    res.status(200).json(finalResponse);
+
+    redis
+      .setex(cacheKey, 60, JSON.stringify(finalResponse))
+      .catch(console.error);
   } catch (error) {
     next(error);
   }

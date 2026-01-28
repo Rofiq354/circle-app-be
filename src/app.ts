@@ -5,6 +5,9 @@ import cors from "cors";
 import coockieParser from "cookie-parser";
 import { Server } from "socket.io";
 
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./swagger";
+
 import authRouter from "./routes/auth";
 import dashboardRouter from "./routes/dashboard";
 import userRouter from "./routes/user";
@@ -30,6 +33,8 @@ app.use(express.json());
 app.use(cors(corsOptions));
 app.use(coockieParser());
 app.use("/public/", express.static("public/"));
+
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));  
 
 app.use((req, res, next) => {
   (req as any).io = io;

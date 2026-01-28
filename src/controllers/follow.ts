@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { prisma } from "../prisma/prismaClient";
 import { AppError } from "../errors/AppError";
+import { redis } from "../lib/redis";
 
 export const getUserFollowers = async (
   req: Request,
@@ -103,21 +104,30 @@ export const toggleFollow = async (
         .json({ message: "Anda tidak boleh follow diri sendiri" });
     }
 
-    // Cek apakah sudah follow
     const existingFollow = await prisma.following.findFirst({
-      where: {
-        followerId,
-        followingId,
-      },
+      where: { followerId, followingId },
     });
+
+    const clearFollowCache = async () => {
+      try {
+        const userCacheKeys = await redis.keys(`users:*:viewer:${followerId}`);
+        const profileCacheKey = `threads:user_profile:${followingId}`;
+
+        const allKeysToDel = [...userCacheKeys, profileCacheKey];
+
+        if (allKeysToDel.length > 0) {
+          await redis.del(...allKeysToDel);
+        }
+      } catch (err) {
+        console.error("Redis Delete Error:", err);
+      }
+    };
 
     if (existingFollow) {
       // Jika SUDAH ada, maka UNFOLLOW (Delete)
-      await prisma.following.delete({
-        where: {
-          id: existingFollow.id,
-        },
-      });
+      await prisma.following.delete({ where: { id: existingFollow.id } });
+
+      await clearFollowCache();
 
       return res.status(200).json({
         status: "success",
@@ -135,6 +145,8 @@ export const toggleFollow = async (
           followingId: followingId,
         },
       });
+
+      await clearFollowCache();
 
       return res.status(200).json({
         status: "success",

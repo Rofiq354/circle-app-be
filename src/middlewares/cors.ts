@@ -1,16 +1,16 @@
 import { CorsOptions } from "cors";
 
-const allowedOrigins = ["http://localhost:5173"];
+const allowedOrigins = ["http://localhost:5173", "http://localhost:3003"];
 
 export const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
+      return callback(null, true);
     }
+
+    return callback(new Error(`CORS blocked origin: ${origin}`));
   },
 
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],

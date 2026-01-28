@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import { prisma } from "../prisma/prismaClient";
 import { AppError } from "../errors/AppError";
+import { redis } from "../lib/redis";
 
 export const getUserProfile = async (
   req: Request,
@@ -177,82 +178,61 @@ export const getAllUser = async (
   res: Response,
   next: NextFunction,
 ) => {
-  const { page = 1, limit = 20, type = "all" } = req.query;
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 50;
+  const type = req.query.type || "all";
+  const userId = Number(req.user.id);
+
+  const cacheKey = `users:${type}:page:${page}:limit:${limit}:viewer:${userId}`;
+
   try {
-    const userId = req.user.id;
+    const cachedUsers = await redis.get(cacheKey);
+    if (cachedUsers) {
+      return res.status(200).json(JSON.parse(cachedUsers));
+    }
+    const skip = (page - 1) * limit;
 
-    let result;
-    let message;
+    const whereCondition: any = {
+      NOT: { id: userId },
+    };
 
-    if (type === "all") {
-      const users = await prisma.user.findMany({
-        where: {
-          NOT: { id: Number(userId) },
-        },
-        select: {
-          id: true,
-          username: true,
-          fullname: true,
-          photo_profile: true,
-          followers: {
-            where: { followerId: Number(userId) },
-          },
-        },
-        take: Number(limit),
-        skip: Number(page) === 0 ? 0 : (Number(page) - 1) * Number(limit),
-      });
-
-      result = users.map((user) => {
-        const { followers, ...userWithoutFollowers } = user;
-
-        return {
-          ...userWithoutFollowers,
-          isFollowed: followers.length > 0,
-        };
-      });
-
-      message = "Success get all user";
-    } else if (type === "suggested") {
-      const users = await prisma.user.findMany({
-        where: {
-          AND: [
-            { NOT: { id: Number(userId) } },
-            {
-              followers: {
-                // user yang tidak memiliki pengikut dengan ID saya
-                none: {
-                  followerId: Number(userId),
-                },
-              },
-            },
-          ],
-        },
-        select: {
-          id: true,
-          username: true,
-          fullname: true,
-          photo_profile: true,
-          followers: {
-            where: { followerId: Number(userId) },
-          },
-        },
-        take: Number(limit),
-        skip: Number(page) === 0 ? 0 : (Number(page) - 1) * Number(limit),
-      });
-
-      result = users.map((user) => {
-        const { followers, ...userWithoutFollowers } = user;
-
-        return {
-          ...userWithoutFollowers,
-          isFollowed: followers.length > 0,
-        };
-      });
-
-      message = "Success get suggested user";
+    if (type === "suggested") {
+      whereCondition.followers = {
+        none: { followerId: userId },
+      };
     }
 
-    res.status(200).json({ message, data: result });
+    const users = await prisma.user.findMany({
+      where: whereCondition,
+      select: {
+        id: true,
+        username: true,
+        fullname: true,
+        photo_profile: true,
+        followers: {
+          where: { followerId: userId },
+        },
+      },
+      take: limit,
+      skip: skip < 0 ? 0 : skip,
+    });
+
+    const result = users.map(({ followers, ...user }) => ({
+      ...user,
+      isFollowed: followers.length > 0,
+    }));
+
+    const finalResponse = {
+      message: `Success get ${type} user`,
+      data: result,
+    };
+
+    // 3. Kirim Respon ke Client
+    res.status(200).json(finalResponse);
+
+    redis
+      .setex(cacheKey, 300, JSON.stringify(finalResponse))
+      .catch((err) => console.error("Redis Set Error (Users):", err));
   } catch (error) {
     next(error);
   }
