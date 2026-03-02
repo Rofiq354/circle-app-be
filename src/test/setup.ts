@@ -1,8 +1,5 @@
-import { redis } from "../lib/redis";
-import { prisma } from "../prisma/prismaClient";
+import { prismaMock } from "../lib/__mocks__/prisma";
 
-afterAll(async () => {
-  // Menutup semua handle yang mungkin terbuka secara global
-  await prisma.$disconnect();
-  if (redis) await redis.quit();
+afterEach(() => {
+  prismaMock.following.findMany.mockReset();
 });

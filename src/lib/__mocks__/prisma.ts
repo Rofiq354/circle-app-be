@@ -1,17 +1,10 @@
-// src/lib/__mocks__/prisma.ts
 import { PrismaClient } from "@prisma/client";
-import { mockDeep, mockReset, DeepMockProxy } from "jest-mock-extended";
-import { prisma } from "../../prisma/prismaClient";
+import { mockDeep, DeepMockProxy } from "jest-mock-extended";
 
-// Menginstruksikan Jest untuk me-mock file prisma asli
+export const prismaMock =
+  mockDeep<PrismaClient>() as unknown as DeepMockProxy<PrismaClient>;
+
 jest.mock("../../prisma/prismaClient", () => ({
   __esModule: true,
-  prisma: mockDeep<PrismaClient>(),
+  prisma: prismaMock,
 }));
-
-export const prismaMock = prisma as unknown as DeepMockProxy<PrismaClient>;
-
-// Reset mock setiap kali sebelum tes dijalankan agar tidak ada data sisa
-beforeEach(() => {
-  mockReset(prismaMock);
-});

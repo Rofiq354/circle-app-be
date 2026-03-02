@@ -11,7 +11,6 @@ export const getUserFollowers = async (
   try {
     const userId = req.user.id;
     const { id, type } = req.params;
-    // const { type } = req.query;
 
     if (!type) {
       return res.status(400).json({
@@ -20,18 +19,14 @@ export const getUserFollowers = async (
       });
     }
 
-    let result;
-
-    const myFollowing = await prisma.following.findMany({
+    const myFollowingQuery = prisma.following.findMany({
       where: { followerId: Number(userId) },
       select: { followingId: true },
     });
 
-    // Ubah ke Set agar pencarian (lookup) lebih cepat
-    const myFollowingIds = new Set(myFollowing.map((f) => f.followingId));
-
+    let mainQuery;
     if (type === "following") {
-      result = await prisma.following.findMany({
+      mainQuery = prisma.following.findMany({
         where: { followerId: Number(id) },
         include: {
           following: {
@@ -45,15 +40,8 @@ export const getUserFollowers = async (
           },
         },
       });
-
-      result = {
-        followers: result.map((item) => ({
-          ...item.following,
-          isFollowing: myFollowingIds.has(item.following.id),
-        })),
-      };
     } else {
-      result = await prisma.following.findMany({
+      mainQuery = prisma.following.findMany({
         where: { followingId: Number(id) },
         include: {
           follower: {
@@ -67,17 +55,28 @@ export const getUserFollowers = async (
           },
         },
       });
-
-      result = {
-        followers: result.map((item) => ({
-          ...item.follower,
-          isFollowing: myFollowingIds.has(item.follower.id),
-        })),
-      };
     }
 
-    // const result = followers;
-    res.status(200).json({ status: "success", data: result });
+    const [myFollowing, rawData] = await Promise.all([
+      myFollowingQuery,
+      mainQuery,
+    ]);
+
+    const myFollowingIds = new Set(myFollowing.map((f) => f.followingId));
+
+    const followers = rawData.map((item: any) => {
+      const userData = type === "following" ? item.following : item.follower;
+      return {
+        ...userData,
+        isFollowing: myFollowingIds.has(userData.id),
+      };
+    });
+
+    res.status(200).json({
+      status: "success",
+      message: "Berhasil mengambil data follower id ke" + id,
+      data: { followers },
+    });
   } catch (error) {
     next(
       new AppError(
