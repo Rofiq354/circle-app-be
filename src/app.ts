@@ -17,12 +17,13 @@ import likesRouter from "./routes/like";
 import followRouter from "./routes/follow";
 import { errorHandler } from "./errors/errorHandler";
 import { corsOptions } from "./middlewares/cors";
+import { env } from "./config/env";
 const app = express();
 
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173", // Sesuaikan dengan port Frontend kamu (Vite/React)
+    origin: env.frontEnd, // Sesuaikan dengan port Frontend kamu (Vite/React)
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -34,7 +35,7 @@ app.use(cors(corsOptions));
 app.use(coockieParser());
 app.use("/public/", express.static("public/"));
 
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));  
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use((req, res, next) => {
   (req as any).io = io;
@@ -54,6 +55,6 @@ app.use(errorHandler);
 // app.listen(process.env.PORT || 3000, () => {
 //   console.log(`Server running on localhost:${process.env.PORT || 3000}`);
 // });
-server.listen(process.env.PORT || 3000, () => {
-  console.log(`Server running on localhost:${process.env.PORT || 3000}`);
+server.listen(env.post || 3000, () => {
+  console.log(`Server running on localhost:${env.post || 3000}`);
 });
