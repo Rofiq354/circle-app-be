@@ -1,6 +1,11 @@
 import { CorsOptions } from "cors";
+import { env } from "../config/env";
 
-const allowedOrigins = ["http://localhost:5173", "http://localhost:3003"];
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3003",
+  env.frontEnd,
+];
 
 export const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
