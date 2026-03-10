@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express-serve-static-core";
 import { redis } from "../lib/redis";
 import { prisma } from "../prisma/prismaClient";
 import { AppError } from "../errors/AppError";
+import cloudinary from "../config/cloudinary";
 
 export const getAllThreads = async (
   req: Request,
@@ -97,10 +98,27 @@ export const createThread = async (
     const { content } = req.body;
     const userId = req.user.id;
 
+    const uploadToCloudinary = (buffer: Buffer) => {
+      return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: "circle-app",
+          },
+          (error, result) => {
+            if (error) return reject(error);
+            resolve(result);
+          },
+        );
+
+        stream.end(buffer);
+      });
+    };
+
     let imagePath = null;
 
     if (req.file) {
-      imagePath = `${req.protocol}://${req.get("host")}/public/uploads/${req.file.filename}`;
+      const result: any = await uploadToCloudinary(req.file.buffer);
+      imagePath = result.secure_url;
     }
     const newThread = await prisma.thread.create({
       data: {
@@ -152,7 +170,8 @@ export const createThread = async (
       },
     });
   } catch (error) {
-    next(new AppError("Invalid thread content", 500));
+    console.error(error);
+    next(new AppError("Failed to upload image to Cloudinary", 500));
   }
 };
 

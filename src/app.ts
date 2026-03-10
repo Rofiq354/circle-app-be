@@ -18,6 +18,7 @@ import followRouter from "./routes/follow";
 import { errorHandler } from "./errors/errorHandler";
 import { corsOptions } from "./middlewares/cors";
 import { env } from "./config/env";
+import path from "node:path";
 const app = express();
 
 const server = createServer(app);
@@ -33,7 +34,7 @@ const io = new Server(server, {
 app.use(express.json());
 app.use(cors(corsOptions));
 app.use(coockieParser());
-app.use("/public/", express.static("public/"));
+app.use("/public", express.static(path.resolve("public")));
 
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
