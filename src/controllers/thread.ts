@@ -1,8 +1,8 @@
+import cloudinary from "../config/cloudinary";
 import { NextFunction, Request, Response } from "express-serve-static-core";
 import { redis } from "../lib/redis";
 import { prisma } from "../prisma/prismaClient";
 import { AppError } from "../errors/AppError";
-import cloudinary from "../config/cloudinary";
 
 export const getAllThreads = async (
   req: Request,
@@ -104,7 +104,7 @@ export const createThread = async (
           {
             folder: "circle-app",
           },
-          (error, result) => {
+          (error: unknown, result: any) => {
             if (error) return reject(error);
             resolve(result);
           },
@@ -117,6 +117,7 @@ export const createThread = async (
     let imagePath = null;
 
     if (req.file) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result: any = await uploadToCloudinary(req.file.buffer);
       imagePath = result.secure_url;
     }
