@@ -60,7 +60,7 @@ export const register = async (
 
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: true,
       sameSite: "none",
       // maxAge: 24 * 60 * 60 * 1000,
       maxAge: 3 * 60 * 60 * 1000,
@@ -131,7 +131,7 @@ export const login = async (
 
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: true,
       sameSite: "none",
       maxAge: 24 * 60 * 60 * 1000,
       // maxAge: 15 * 1000,
